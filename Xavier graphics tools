@@ -1,0 +1,2392 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xavier OS // Neural Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-green: #0aff0a;
+            --neon-pink: #ff006e;
+            --neon-orange: #ff9500;
+            --bg-dark: #050505;
+            --panel-bg: rgba(10, 10, 15, 0.9);
+            --border-glow: rgba(0, 243, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Boot Sequence */
+        #boot-sequence {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .boot-text {
+            color: var(--neon-cyan);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 800px;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        .boot-line {
+            opacity: 0;
+            animation: bootFade 0.1s forwards;
+        }
+
+        @keyframes bootFade {
+            to { opacity: 1; }
+        }
+
+        .boot-progress {
+            width: 400px;
+            height: 2px;
+            background: rgba(0, 243, 255, 0.2);
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .boot-progress-bar {
+            height: 100%;
+            background: var(--neon-cyan);
+            width: 0%;
+            box-shadow: 0 0 20px var(--neon-cyan);
+            animation: bootProgress 3s ease-out forwards;
+        }
+
+        @keyframes bootProgress {
+            to { width: 100%; }
+        }
+
+        /* Desktop Environment */
+        #desktop {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(188, 19, 254, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 243, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #050505 0%, #0a0a0f 100%);
+            display: none;
+        }
+
+        .grid-bg {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+        }
+
+        /* Top Bar */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 35px;
+            background: rgba(5, 5, 5, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-glow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            color: var(--neon-cyan);
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #888;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Windows */
+        .window {
+            position: absolute;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.9),
+                0 0 0 1px rgba(0, 243, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            min-width: 400px;
+            min-height: 300px;
+        }
+
+        .window.active {
+            border-color: rgba(0, 243, 255, 0.5);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.9),
+                0 0 40px rgba(0, 243, 255, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .window.minimized {
+            opacity: 0;
+            transform: scale(0.8) translateY(100px);
+            pointer-events: none;
+        }
+
+        .window-header {
+            height: 40px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            cursor: move;
+            user-select: none;
+        }
+
+        .window-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .window-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .window-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .btn-close { background: #ff5f57; }
+        .btn-close:hover::after {
+            background: rgba(0,0,0,0.2);
+            opacity: 1;
+        }
+
+        .btn-minimize { background: #febc2e; }
+        .btn-maximize { background: #28c840; }
+
+        .window-content {
+            height: calc(100% - 40px);
+            overflow: auto;
+            position: relative;
+        }
+
+        /* Dock */
+        .dock {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .dock-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            color: var(--neon-cyan);
+        }
+
+        .dock-item:hover {
+            transform: translateY(-10px) scale(1.1);
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.3);
+        }
+
+        .dock-item.active {
+            background: rgba(0, 243, 255, 0.25);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        .dock-item.has-window::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 5px var(--neon-cyan);
+        }
+
+        .dock-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: rgba(0, 0, 0, 0.95);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s;
+            border: 1px solid var(--border-glow);
+        }
+
+        .dock-item:hover .dock-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* App Icons */
+        .app-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Terminal */
+        .terminal {
+            background: rgba(0, 0, 0, 0.95);
+            font-family: 'JetBrains Mono', monospace;
+            padding: 20px;
+            height: 100%;
+            overflow-y: auto;
+            color: #0aff0a;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            margin-bottom: 4px;
+            animation: fadeIn 0.1s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .terminal-prompt {
+            color: var(--neon-cyan);
+        }
+
+        .terminal-input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .terminal-input {
+            background: transparent;
+            border: none;
+            color: #0aff0a;
+            font-family: inherit;
+            font-size: inherit;
+            outline: none;
+            flex: 1;
+            margin-left: 8px;
+            caret-color: var(--neon-cyan);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(188, 19, 254, 0.2));
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: rgba(0, 243, 255, 0.35);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 243, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 243, 255, 0.5);
+        }
+
+        /* Glitch Effect */
+        .glitch {
+            position: relative;
+            animation: glitch 3s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 2px); }
+            94% { transform: translate(2px, -2px); }
+            96% { transform: translate(-2px, -2px); }
+            98% { transform: translate(2px, 2px); }
+        }
+
+        /* Scanlines */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9998;
+            opacity: 0.3;
+        }
+
+        /* Vibe Coder Styles */
+        .vibe-container {
+            padding: 30px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .vibe-input-wrapper {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vibe-input-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            animation: scan 3s linear infinite;
+        }
+
+        @keyframes scan {
+            to { left: 100%; }
+        }
+
+        .vibe-textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            min-height: 120px;
+        }
+
+        .vibe-textarea::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .code-preview {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow: auto;
+            max-height: 400px;
+        }
+
+        .syntax-keyword { color: #ff006e; }
+        .syntax-string { color: #0aff0a; }
+        .syntax-function { color: #00f3ff; }
+        .syntax-comment { color: #666; font-style: italic; }
+
+        /* Loading Animation */
+        .neural-loader {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .neural-bar {
+            width: 4px;
+            background: var(--neon-cyan);
+            animation: neuralLoad 1s ease-in-out infinite;
+        }
+
+        .neural-bar:nth-child(1) { height: 20px; animation-delay: 0s; }
+        .neural-bar:nth-child(2) { height: 30px; animation-delay: 0.1s; }
+        .neural-bar:nth-child(3) { height: 40px; animation-delay: 0.2s; }
+        .neural-bar:nth-child(4) { height: 30px; animation-delay: 0.3s; }
+        .neural-bar:nth-child(5) { height: 20px; animation-delay: 0.4s; }
+
+        @keyframes neuralLoad {
+            0%, 100% { opacity: 0.3; transform: scaleY(0.5); }
+            50% { opacity: 1; transform: scaleY(1); }
+        }
+
+        /* Visual Lab Styles */
+        .visual-lab-workspace {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            height: 100%;
+            background: #0a0a0f;
+        }
+
+        .tool-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .canvas-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: 
+                radial-gradient(circle at center, rgba(20, 20, 30, 0.9) 0%, rgba(5, 5, 5, 0.95) 100%),
+                repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .properties-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .filter-category {
+            margin-bottom: 24px;
+        }
+
+        .filter-category-title {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .filter-thumb {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .filter-thumb:hover {
+            border-color: var(--neon-cyan);
+            transform: scale(1.05);
+        }
+
+        .filter-thumb.active {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+        }
+
+        .filter-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.85);
+            font-size: 9px;
+            text-align: center;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .adjustment-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            margin: 10px 0;
+        }
+
+        .adjustment-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            transition: transform 0.1s;
+        }
+
+        .adjustment-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .tool-btn.active {
+            background: rgba(0, 243, 255, 0.25);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 90%;
+            max-width: 800px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .canvas-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: filter 0.3s ease;
+        }
+
+        .effect-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            background: rgba(188, 19, 254, 0.15);
+            border: 1px solid rgba(188, 19, 254, 0.3);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--neon-purple);
+            margin: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .effect-tag:hover {
+            background: rgba(188, 19, 254, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .preset-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .preset-card:hover {
+            border-color: var(--neon-cyan);
+            transform: translateY(-2px);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .preset-preview {
+            width: 100%;
+            height: 80px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .ai-enhance-btn {
+            background: linear-gradient(135deg, rgba(188, 19, 254, 0.3), rgba(0, 243, 255, 0.3));
+            border: 1px solid var(--neon-purple);
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .ai-enhance-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(188, 19, 254, 0.3);
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .layer-item:hover {
+            background: rgba(0, 243, 255, 0.05);
+            border-color: rgba(0, 243, 255, 0.2);
+        }
+
+        .layer-item.active {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        .layer-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid var(--neon-cyan);
+            border-radius: 8px;
+            padding: 15px 20px;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            z-index: 3000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.2);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-color: var(--neon-green);
+            box-shadow: 0 10px 30px rgba(10, 255, 10, 0.2);
+        }
+
+        .notification.error {
+            border-color: #ff5f57;
+            box-shadow: 0 10px 30px rgba(255, 95, 87, 0.2);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        /* Design Studio Styles */
+        .design-studio-workspace {
+            display: grid;
+            grid-template-rows: 60px 1fr;
+            height: 100%;
+            background: #0a0a0f;
+            overflow: hidden;
+        }
+
+        .design-studio-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .design-studio-main {
+            display: grid;
+            grid-template-columns: 280px 1fr 300px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .design-sidebar-left {
+            background: rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .design-sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .design-sidebar-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .design-sidebar-tab:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .design-sidebar-tab.active {
+            color: var(--neon-cyan);
+            border-bottom-color: var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .design-sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .design-canvas-area {
+            background: #1a1a1f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .design-canvas {
+            background: white;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .design-element {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            border: 2px solid transparent;
+        }
+
+        .design-element:hover {
+            border-color: rgba(0, 243, 255, 0.5);
+        }
+
+        .design-element.selected {
+            border-color: var(--neon-cyan);
+        }
+
+        .design-element.selected::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border: 1px dashed var(--neon-cyan);
+            pointer-events: none;
+        }
+
+        .resize-handle {
+            width: 10px;
+            height: 10px;
+            background: var(--neon-cyan);
+            position: absolute;
+            display: none;
+        }
+
+        .design-element.selected .resize-handle {
+            display: block;
+        }
+
+        .resize-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
+        .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
+        .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+
+        .design-sidebar-right {
+            background: rgba(0, 0, 0, 0.8);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .template-card {
+            aspect-ratio: 3/4;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .template-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.2);
+        }
+
+        .template-preview {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            background: linear-gradient(135deg, rgba(0,243,255,0.1), rgba(188,19,254,0.1));
+        }
+
+        .template-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.9);
+            font-size: 10px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .element-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .element-btn:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        .element-btn i {
+            color: var(--neon-cyan);
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .text-style-btn {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 3px;
+            transition: all 0.2s;
+        }
+
+        .text-style-btn:hover {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--neon-cyan);
+        }
+
+        .color-picker {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-picker:hover {
+            transform: scale(1.1);
+            border-color: #fff;
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, gold, orange);
+            color: #000;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .layer-panel-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .layer-panel-item:hover {
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .layer-panel-item.active {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        .font-select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .font-select option {
+            background: #1a1a1f;
+        }
+
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .shape-item {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 24px;
+        }
+
+        .shape-item:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        .ai-magic-btn {
+            background: linear-gradient(135deg, rgba(188, 19, 254, 0.4), rgba(0, 243, 255, 0.4));
+            border: 1px solid var(--neon-purple);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .ai-magic-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(188, 19, 254, 0.4);
+        }
+
+        .ai-magic-btn.premium::after {
+            content: 'PRO';
+            background: gold;
+            color: #000;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .brand-kit-panel {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .brand-kit-color {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .brand-kit-color:hover {
+            transform: scale(1.1);
+            border-color: #fff;
+        }
+
+        .animate-panel {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .animate-item {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .animate-item:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        .animate-item i {
+            color: var(--neon-cyan);
+        }
+
+        .animate-item.premium {
+            opacity: 0.7;
+        }
+
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .export-btn {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        .export-btn i {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--neon-cyan);
+        }
+
+        .export-btn span {
+            font-size: 11px;
+            color: #fff;
+        }
+
+        .bg-pattern-grid {
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .bg-pattern-dots {
+            background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .bg-pattern-lines {
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 10px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Boot Sequence -->
+    <div id="boot-sequence">
+        <div class="boot-text" id="boot-text"></div>
+        <div class="boot-progress">
+            <div class="boot-progress-bar"></div>
+        </div>
+        <div style="margin-top: 10px; color: #666; font-size: 12px;">XAVIER_NEURAL_INTERFACE_v2.2.0</div>
+    </div>
+
+    <!-- Desktop Environment -->
+    <div id="desktop">
+        <div class="grid-bg"></div>
+        <div class="scanlines"></div>
+
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <span class="glitch">◉ XAVIER OS</span>
+                <span style="color: #666;">|</span>
+                <span id="active-app">Desktop</span>
+            </div>
+            <div class="top-bar-right">
+                <span id="neural-status">NEURAL LINK: ACTIVE</span>
+                <div class="status-indicator"></div>
+                <span id="clock">00:00:00</span>
+            </div>
+        </div>
+
+        <!-- Windows Container -->
+        <div id="windows-container"></div>
+
+        <!-- Dock -->
+        <div class="dock" id="dock">
+            <div class="dock-item active" data-app="terminal" onclick="toggleApp('terminal')">
+                <i data-lucide="terminal" class="app-icon"></i>
+                <div class="dock-tooltip">Terminal</div>
+            </div>
+            <div class="dock-item" data-app="vibe-coder" onclick="toggleApp('vibe-coder')">
+                <i data-lucide="code-2" class="app-icon"></i>
+                <div class="dock-tooltip">Vibe Coder</div>
+            </div>
+            <div class="dock-item" data-app="wan-video" onclick="toggleApp('wan-video')">
+                <i data-lucide="video" class="app-icon"></i>
+                <div class="dock-tooltip">Wan 2.2 Studio</div>
+            </div>
+            <div class="dock-item" data-app="foss-image" onclick="toggleApp('foss-image')">
+                <i data-lucide="image" class="app-icon"></i>
+                <div class="dock-tooltip">FOSS Image AI</div>
+            </div>
+            <div class="dock-item" data-app="visual-lab" onclick="toggleApp('visual-lab')">
+                <i data-lucide="sparkles" class="app-icon"></i>
+                <div class="dock-tooltip">Visual Lab</div>
+            </div>
+            <div class="dock-item" data-app="design-studio" onclick="toggleApp('design-studio')">
+                <i data-lucide="palette" class="app-icon"></i>
+                <div class="dock-tooltip">Design Studio</div>
+            </div>
+            <div class="dock-item" data-app="funnel-builder" onclick="toggleApp('funnel-builder')">
+                <i data-lucide="filter" class="app-icon"></i>
+                <div class="dock-tooltip">Funnel Builder</div>
+            </div>
+            <div class="dock-item" data-app="neural-net" onclick="toggleApp('neural-net')">
+                <i data-lucide="network" class="app-icon"></i>
+                <div class="dock-tooltip">Neural Net</div>
+            </div>
+            <div class="dock-item" data-app="system" onclick="toggleApp('system')">
+                <i data-lucide="settings" class="app-icon"></i>
+                <div class="dock-tooltip">System</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for notifications/alerts -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3 id="modal-title" style="color: var(--neon-cyan); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace;">Notification</h3>
+            <p id="modal-message" style="color: #ccc; margin-bottom: 20px; line-height: 1.5;"></p>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn-primary" id="modal-action" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container"></div>
+
+    <script>
+        // ==========================================
+        // XAVIER OS CORE SYSTEM
+        // ==========================================
+
+        // State Management
+        const System = {
+            windows: new Map(),
+            activeWindow: null,
+            zIndex: 100,
+            windowCount: 0,
+            settings: {
+                apiProvider: 'aimlapi',
+                apiKey: localStorage.getItem('xavier_api_key') || '',
+                theme: 'dark',
+                accentColor: 'cyan'
+            },
+            history: {
+                vibeCoder: JSON.parse(localStorage.getItem('xavier_vibe_history') || '[]'),
+                visualLab: JSON.parse(localStorage.getItem('xavier_visual_history') || '[]'),
+                designStudio: JSON.parse(localStorage.getItem('xavier_design_history') || '[]')
+            }
+        };
+
+        // Design Studio State
+        let DesignState = {
+            elements: [],
+            selectedElement: null,
+            canvasWidth: 800,
+            canvasHeight: 600,
+            zoom: 1,
+            layers: [],
+            history: [],
+            historyIndex: -1,
+            isDragging: false,
+            dragOffset: { x: 0, y: 0 },
+            currentTool: 'select',
+            brandKit: {
+                colors: ['#00f3ff', '#bc13fe', '#0aff0a', '#ff006e', '#ff9500'],
+                fonts: ['Inter', 'JetBrains Mono', 'Playfair Display', 'Bebas Neue']
+            }
+        };
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Boot Sequence
+        const bootLines = [
+            "INITIALIZING XAVIER NEURAL INTERFACE...",
+            "LOADING KERNEL MODULES... [OK]",
+            "MOUNTING FILESYSTEMS... [OK]",
+            "INITIALIZING NEURAL NETWORK... [OK]",
+            "LOADING AI MODELS... [OK]",
+            "Wan 2.2 Video Synthesis... [LOADED]",
+            "Vibe Coder Engine... [LOADED]",
+            "FOSS Image Generators... [LOADED]",
+            "Visual Lab Filters... [LOADED]",
+            "Design Studio Canvas... [LOADED]",
+            "Funnel Builder AI... [LOADED]",
+            "ESTABLISHING SECURE CONNECTION... [OK]",
+            "MOUNTING VIRTUAL MEMORY... [OK]",
+            "CALIBRATING NEURAL PATHWAYS... [OK]",
+            "SYSTEM READY."
+        ];
+
+        let bootIndex = 0;
+        const bootText = document.getElementById('boot-text');
+
+        function typeBootLine() {
+            if (bootIndex < bootLines.length) {
+                const line = document.createElement('div');
+                line.className = 'boot-line';
+                line.style.animationDelay = `${bootIndex * 0.05}s`;
+                line.textContent = `> ${bootLines[bootIndex]}`;
+                bootText.appendChild(line);
+                bootIndex++;
+                setTimeout(typeBootLine, 100);
+            }
+        }
+
+        typeBootLine();
+
+        // Complete boot
+        setTimeout(() => {
+            document.getElementById('boot-sequence').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('boot-sequence').style.display = 'none';
+                document.getElementById('desktop').style.display = 'block';
+                openApp('terminal');
+            }, 500);
+        }, 3000);
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ==========================================
+        // WINDOW MANAGEMENT
+        // ==========================================
+
+        function toggleApp(appName) {
+            const windowId = `window-${appName}`;
+            const existingWindow = document.getElementById(windowId);
+            
+            if (existingWindow) {
+                if (existingWindow.classList.contains('minimized')) {
+                    restoreWindow(windowId);
+                } else if (System.activeWindow === appName) {
+                    minimizeWindow(windowId);
+                } else {
+                    focusWindow(appName);
+                }
+            } else {
+                openApp(appName);
+            }
+        }
+
+        function openApp(appName) {
+            const app = Apps[appName];
+            if (!app) return;
+
+            System.windowCount++;
+            const windowId = `window-${appName}`;
+            
+            const windowEl = document.createElement('div');
+            windowEl.className = 'window active';
+            windowEl.id = windowId;
+            windowEl.style.width = app.width + 'px';
+            windowEl.style.height = app.height + 'px';
+            windowEl.style.left = (50 + System.windowCount * 30) + 'px';
+            windowEl.style.top = (50 + System.windowCount * 30) + 'px';
+            windowEl.style.zIndex = ++System.zIndex;
+
+            windowEl.innerHTML = `
+                <div class="window-header" onmousedown="startDrag(event, '${windowId}')">
+                    <div class="window-title">
+                        <i data-lucide="${app.icon}" style="width: 14px; height: 14px;"></i>
+                        ${app.title}
+                    </div>
+                    <div class="window-controls">
+                        <button class="window-btn btn-minimize" onclick="minimizeWindow('${windowId}')" title="Minimize"></button>
+                        <button class="window-btn btn-maximize" onclick="maximizeWindow('${windowId}')" title="Maximize"></button>
+                        <button class="window-btn btn-close" onclick="closeWindow('${windowId}')" title="Close"></button>
+                    </div>
+                </div>
+                <div class="window-content" id="content-${windowId}">
+                    ${app.content}
+                </div>
+            `;
+
+            document.getElementById('windows-container').appendChild(windowEl);
+            System.windows.set(appName, windowEl);
+            
+            // Update UI
+            updateDock();
+            focusWindow(appName);
+            
+            // Initialize app-specific functionality
+            setTimeout(() => {
+                lucide.createIcons();
+                if (app.init) app.init();
+            }, 0);
+        }
+
+        function closeWindow(windowId) {
+            const windowEl = document.getElementById(windowId);
+            const appName = windowId.replace('window-', '');
+            
+            windowEl.style.transform = 'scale(0.9)';
+            windowEl.style.opacity = '0';
+            
+            setTimeout(() => {
+                windowEl.remove();
+                System.windows.delete(appName);
+                updateDock();
+                
+                // Focus next window
+                if (System.windows.size > 0) {
+                    const nextApp = Array.from(System.windows.keys())[0];
+                    focusWindow(nextApp);
+                } else {
+                    System.activeWindow = null;
+                    document.getElementById('active-app').textContent = 'Desktop';
+                }
+            }, 200);
+        }
+
+        function minimizeWindow(windowId) {
+            const windowEl = document.getElementById(windowId);
+            windowEl.classList.add('minimized');
+            windowEl.classList.remove('active');
+            
+            const appName = windowId.replace('window-', '');
+            if (System.activeWindow === appName) {
+                System.activeWindow = null;
+                document.getElementById('active-app').textContent = 'Desktop';
+            }
+            updateDock();
+        }
+
+        function restoreWindow(windowId) {
+            const windowEl = document.getElementById(windowId);
+            windowEl.classList.remove('minimized');
+            focusWindow(windowId.replace('window-', ''));
+        }
+
+        function maximizeWindow(windowId) {
+            const windowEl = document.getElementById(windowId);
+            const appName = windowId.replace('window-', '');
+            const app = Apps[appName];
+            
+            if (windowEl.dataset.maximized === 'true') {
+                windowEl.style.width = app.width + 'px';
+                windowEl.style.height = app.height + 'px';
+                windowEl.style.left = windowEl.dataset.prevLeft;
+                windowEl.style.top = windowEl.dataset.prevTop;
+                windowEl.dataset.maximized = 'false';
+            } else {
+                windowEl.dataset.prevLeft = windowEl.style.left;
+                windowEl.dataset.prevTop = windowEl.style.top;
+                windowEl.style.width = 'calc(100vw - 40px)';
+                windowEl.style.height = 'calc(100vh - 80px)';
+                windowEl.style.left = '20px';
+                windowEl.style.top = '20px';
+                windowEl.dataset.maximized = 'true';
+            }
+        }
+
+        function focusWindow(appName) {
+            const windowId = `window-${appName}`;
+            const windowEl = document.getElementById(windowId);
+            
+            if (!windowEl) return;
+            
+            // Update z-index
+            windowEl.style.zIndex = ++System.zIndex;
+            
+            // Update active states
+            document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+            windowEl.classList.add('active');
+            
+            System.activeWindow = appName;
+            document.getElementById('active-app').textContent = Apps[appName].title;
+            updateDock();
+        }
+
+        function updateDock() {
+            document.querySelectorAll('.dock-item').forEach(item => {
+                const appName = item.dataset.app;
+                const hasWindow = System.windows.has(appName);
+                const isActive = System.activeWindow === appName;
+                
+                item.classList.toggle('active', isActive);
+                item.classList.toggle('has-window', hasWindow);
+            });
+        }
+
+        // Drag functionality
+        let draggedWindow = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        function startDrag(e, windowId) {
+            if (e.target.closest('.window-controls')) return;
+            
+            const windowEl = document.getElementById(windowId);
+            if (windowEl.dataset.maximized === 'true') return;
+            
+            draggedWindow = windowEl;
+            const rect = windowEl.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+
+        function drag(e) {
+            if (!draggedWindow) return;
+            
+            const x = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - dragOffsetX));
+            const y = Math.max(35, Math.min(window.innerHeight - 100, e.clientY - dragOffsetY));
+            
+            draggedWindow.style.left = x + 'px';
+            draggedWindow.style.top = y + 'px';
+        }
+
+        function stopDrag() {
+            draggedWindow = null;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // ==========================================
+        // NOTIFICATION SYSTEM
+        // ==========================================
+
+        function showNotification(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info'}" style="width: 18px; height: 18px;"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            lucide.createIcons();
+            
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, duration);
+        }
+
+        function showModal(title, message, actionText = 'OK', actionCallback = null) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('modal-action').textContent = actionText;
+            
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.add('active');
+            
+            if (actionCallback) {
+                document.getElementById('modal-action').onclick = () => {
+                    actionCallback();
+                    closeModal();
+                };
+            }
+        }
+
+        function closeModal(event) {
+            if (!event || event.target.id === 'modal-overlay' || event.target.closest('.btn-secondary') || event.target.id === 'modal-action') {
+                document.getElementById('modal-overlay').classList.remove('active');
+            }
+        }
+
+        // ==========================================
+        // APP DEFINITIONS
+        // ==========================================
+
+        const Apps = {
+            'terminal': {
+                title: 'Terminal',
+                icon: 'terminal',
+                width: 800,
+                height: 500,
+                content: `
+                    <div class="terminal" id="terminal-container">
+                        <div class="terminal-line">XAVIER OS v2.2.0 - Neural Interface</div>
+                        <div class="terminal-line">Type 'help' for available commands</div>
+                        <div class="terminal-line"></div>
+                    </div>
+                `,
+                init: function() {
+                    const container = document.getElementById('terminal-container');
+                    addTerminalInput(container);
+                }
+            },
+
+            'design-studio': {
+                title: 'Design Studio // Visual Creator',
+                icon: 'palette',
+                width: 1400,
+                height: 900,
+                content: `
+                    <div class="design-studio-workspace">
+                        <div class="design-studio-toolbar">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <button class="btn-primary" style="padding: 8px 16px; font-size: 11px;" onclick="designNewProject()">
+                                    <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                                    Create New
+                                </button>
+                                <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.1);"></div>
+                                <button class="btn-secondary" onclick="designUndo()">
+                                    <i data-lucide="undo-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <button class="btn-secondary" onclick="designRedo()">
+                                    <i data-lucide="redo-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.1);"></div>
+                                <span style="color: #888; font-size: 12px; font-family: 'JetBrains Mono', monospace;">Untitled Design</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button class="btn-secondary" onclick="designZoom(-0.1)">
+                                    <i data-lucide="zoom-out" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <span id="design-zoom-display" style="color: #888; font-size: 12px; min-width: 50px; text-align: center;">100%</span>
+                                <button class="btn-secondary" onclick="designZoom(0.1)">
+                                    <i data-lucide="zoom-in" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.1); margin: 0 10px;"></div>
+                                <button class="btn-primary" style="background: rgba(188,19,254,0.3); border-color: var(--neon-purple);" onclick="designShare()">
+                                    <i data-lucide="share-2" style="width: 14px; height: 14px;"></i>
+                                    Share
+                                </button>
+                                <button class="btn-primary" onclick="designDownload()">
+                                    <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                        <div class="design-studio-main">
+                            <div class="design-sidebar-left">
+                                <div class="design-sidebar-tabs">
+                                    <div class="design-sidebar-tab active" onclick="switchDesignTab('templates', this)">Templates</div>
+                                    <div class="design-sidebar-tab" onclick="switchDesignTab('elements', this)">Elements</div>
+                                    <div class="design-sidebar-tab" onclick="switchDesignTab('uploads', this)">Uploads</div>
+                                    <div class="design-sidebar-tab" onclick="switchDesignTab('text', this)">Text</div>
+                                </div>
+                                <div class="design-sidebar-content" id="design-sidebar-content">
+                                    <div id="panel-templates" style="display: block;">
+                                        <div style="margin-bottom: 15px;">
+                                            <input type="text" placeholder="Search templates..." style="width: 100%; padding: 10px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 13px;">
+                                        </div>
+                                        <div style="margin-bottom: 20px;">
+                                            <div style="font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Social Media</div>
+                                            <div class="template-grid">
+                                                <div class="template-card" onclick="loadDesignTemplate('instagram-post')">
+                                                    <div class="template-preview">📱</div>
+                                                    <div class="template-label">Instagram Post</div>
+                                                </div>
+                                                <div class="template-card" onclick="loadDesignTemplate('instagram-story')">
+                                                    <div class="template-preview">📲</div>
+                                                    <div class="template-label">Story</div>
+                                                </div>
+                                                <div class="template-card" onclick="loadDesignTemplate('facebook-post')">
+                                                    <div class="template-preview">💬</div>
+                                                    <div class="template-label">Facebook</div>
+                                                </div>
+                                                <div class="template-card" onclick="loadDesignTemplate('twitter-post')">
+                                                    <div class="template-preview">🐦</div>
+                                                    <div class="template-label">Twitter</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 20px;">
+                                            <div style="font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Marketing</div>
+                                            <div class="template-grid">
+                                                <div class="template-card" onclick="loadDesignTemplate('flyer')">
+                                                    <div class="template-preview">📄</div>
+                                                    <div class="template-label">Flyer</div>
+                                                </div>
+                                                <div class="template-card" onclick="loadDesignTemplate('poster')">
+                                                    <div class="template-preview">🖼️</div>
+                                                    <div class="template-label">Poster</div>
+                                                </div>
+                                                <div class="template-card" onclick="loadDesignTemplate('business-card')">
+                                                    <div class="template-preview">💳</div>
+                                                    <div class="template-label">Business Card</div>
+                                                </div>
+                                                <div class="template-card" onclick="loadDesignTemplate('brochure')">
+                                                    <div class="template-preview">📑</div>
+                                                    <div class="template-label">Brochure</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="panel-elements" style="display: none;">
+                                        <div style="margin-bottom: 20px;">
+                                            <div style="font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Shapes</div>
+                                            <div class="shape-grid">
+                                                <div class="shape-item" onclick="addDesignShape('square')">⬜</div>
+                                                <div class="shape-item" onclick="addDesignShape('circle')">⭕</div>
+                                                <div class="shape-item" onclick="addDesignShape('triangle')">🔺</div>
+                                                <div class="shape-item" onclick="addDesignShape('star')">⭐</div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Lines & Frames</div>
+                                            <div class="shape-grid">
+                                                <div class="shape-item" onclick="addDesignShape('line')">➖</div>
+                                                <div class="shape-item" onclick="addDesignShape('frame')">🖼️</div>
+                                                <div class="shape-item" onclick="addDesignShape('arrow')">➡️</div>
+                                                <div class="shape-item" onclick="addDesignShape('heart')">❤️</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="panel-uploads" style="display: none;">
+                                        <div class="upload-area" onclick="document.getElementById('design-file-upload').click()">
+                                            <i data-lucide="upload-cloud" style="width: 40px; height: 40px; color: var(--neon-cyan); margin-bottom: 10px;"></i>
+                                            <p style="color: #888; font-size: 13px; margin-bottom: 5px;">Upload your images</p>
+                                            <input type="file" id="design-file-upload" style="display: none;" multiple accept="image/*" onchange="handleDesignUpload(event)">
+                                        </div>
+                                    </div>
+                                    <div id="panel-text" style="display: none;">
+                                        <button class="element-btn" onclick="addDesignText('heading')">
+                                            <i data-lucide="type" style="width: 18px; height: 18px;"></i>
+                                            Add Heading
+                                        </button>
+                                        <button class="element-btn" onclick="addDesignText('subheading')">
+                                            <i data-lucide="text" style="width: 18px; height: 18px;"></i>
+                                            Add Subheading
+                                        </button>
+                                        <button class="element-btn" onclick="addDesignText('body')">
+                                            <i data-lucide="align-left" style="width: 18px; height: 18px;"></i>
+                                            Add Body Text
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="design-canvas-area" id="design-canvas-area">
+                                <div class="design-canvas" id="design-canvas" style="width: 800px; height: 600px; background: white;">
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ccc; pointer-events: none;">
+                                        <i data-lucide="layout" style="width: 48px; height: 48px; margin-bottom: 10px; opacity: 0.3;"></i>
+                                        <p>Your design canvas</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="design-sidebar-right">
+                                <div style="margin-bottom: 20px;">
+                                    <div style="font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Layers</div>
+                                    <div id="design-layers-list"></div>
+                                </div>
+                                <div class="brand-kit-panel">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <span style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px;">Brand Colors</span>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                                        <div class="brand-kit-color" style="background: #00f3ff;" onclick="applyBrandColor('#00f3ff')"></div>
+                                        <div class="brand-kit-color" style="background: #bc13fe;" onclick="applyBrandColor('#bc13fe')"></div>
+                                        <div class="brand-kit-color" style="background: #0aff0a;" onclick="applyBrandColor('#0aff0a')"></div>
+                                        <div class="brand-kit-color" style="background: #ff006e;" onclick="applyBrandColor('#ff006e')"></div>
+                                        <div class="brand-kit-color" style="background: #ff9500;" onclick="applyBrandColor('#ff9500')"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Export</div>
+                                    <div class="export-options">
+                                        <div class="export-btn" onclick="exportDesign('png')">
+                                            <i data-lucide="image" style="width: 20px; height: 20px;"></i>
+                                            <span>PNG</span>
+                                        </div>
+                                        <div class="export-btn" onclick="exportDesign('jpg')">
+                                            <i data-lucide="file-image" style="width: 20px; height: 20px;"></i>
+                                            <span>JPG</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                init: function() {
+                    initDesignStudio();
+                }
+            },
+
+            'system': {
+                title: 'System Preferences',
+                icon: 'settings',
+                width: 600,
+                height: 500,
+                content: `
+                    <div style="padding: 30px;">
+                        <h2 style="font-size: 20px; font-weight: 300; margin-bottom: 25px; color: #fff;">SYSTEM PREFERENCES</h2>
+                        <div style="display: grid; gap: 20px;">
+                            <div style="padding: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+                                <h3 style="font-size: 14px; color: var(--neon-cyan); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace;">NEURAL INTERFACE</h3>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 13px; color: #888;">API Provider</span>
+                                    <select style="background: rgba(0,0,0,0.6); border: 1px solid rgba(0,243,255,0.3); color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px;">
+                                        <option>AI/ML API</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn-primary" onclick="saveSystemSettings()">
+                                <i data-lucide="save" style="width: 14px; height: 14px;"></i>
+                                SAVE SETTINGS
+                            </button>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        // ==========================================
+        // TERMINAL FUNCTIONS
+        // ==========================================
+
+        function addTerminalInput(container) {
+            const inputLine = document.createElement('div');
+            inputLine.className = 'terminal-input-line';
+            inputLine.innerHTML = `
+                <span class="terminal-prompt">user@xavier:~$</span>
+                <input type="text" class="terminal-input" autofocus>
+            `;
+            container.appendChild(inputLine);
+            
+            const input = inputLine.querySelector('.terminal-input');
+            input.focus();
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const command = this.value.trim();
+                    processTerminalCommand(command, container);
+                }
+            });
+        }
+
+        function processTerminalCommand(command, container) {
+            const cmdLine = document.createElement('div');
+            cmdLine.className = 'terminal-line';
+            cmdLine.innerHTML = `<span class="terminal-prompt">user@xavier:~$</span> ${command}`;
+            container.insertBefore(cmdLine, container.lastElementChild);
+            
+            let response = '';
+            const cmd = command.toLowerCase();
+            
+            switch(cmd) {
+                case 'help':
+                    response = "Available: help, clear, design, system, reboot";
+                    break;
+                case 'clear':
+                    container.innerHTML = '';
+                    addTerminalInput(container);
+                    return;
+                case 'design':
+                    openApp('design-studio');
+                    response = 'Launching Design Studio...';
+                    break;
+                case 'reboot':
+                    location.reload();
+                    break;
+                default:
+                    response = `Command not found: ${command}`;
+            }
+            
+            if (response) {
+                const div = document.createElement('div');
+                div.className = 'terminal-line';
+                div.textContent = response;
+                container.insertBefore(div, container.lastElementChild);
+            }
+            
+            const inputLine = container.lastElementChild;
+            container.appendChild(inputLine);
+            inputLine.querySelector('.terminal-input').value = '';
+            inputLine.querySelector('.terminal-input').focus();
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ==========================================
+        // DESIGN STUDIO FUNCTIONS
+        // ==========================================
+
+        function initDesignStudio() {
+            const canvas = document.getElementById('design-canvas');
+            const canvasArea = document.getElementById('design-canvas-area');
+            
+            canvasArea.addEventListener('click', (e) => {
+                if (e.target === canvasArea || e.target === canvas) {
+                    deselectAllElements();
+                }
+            });
+        }
+
+        function switchDesignTab(tab, element) {
+            document.querySelectorAll('.design-sidebar-tab').forEach(t => t.classList.remove('active'));
+            element.classList.add('active');
+            
+            ['templates', 'elements', 'uploads', 'text'].forEach(panel => {
+                const el = document.getElementById(`panel-${panel}`);
+                if (el) el.style.display = panel === tab ? 'block' : 'none';
+            });
+        }
+
+        function loadDesignTemplate(template) {
+            const templates = {
+                'instagram-post': { width: 540, height: 540, name: 'Instagram Post' },
+                'instagram-story': { width: 540, height: 960, name: 'Instagram Story' },
+                'facebook-post': { width: 600, height: 315, name: 'Facebook Post' },
+                'twitter-post': { width: 600, height: 337, name: 'Twitter Post' },
+                'flyer': { width: 425, height: 550, name: 'Flyer' },
+                'poster': { width: 600, height: 850, name: 'Poster' },
+                'business-card': { width: 525, height: 300, name: 'Business Card' },
+                'brochure': { width: 600, height: 800, name: 'Brochure' }
+            };
+            
+            const t = templates[template];
+            if (t) {
+                const canvas = document.getElementById('design-canvas');
+                canvas.style.width = t.width + 'px';
+                canvas.style.height = t.height + 'px';
+                DesignState.canvasWidth = t.width;
+                DesignState.canvasHeight = t.height;
+                
+                canvas.innerHTML = `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ccc; pointer-events: none;"><p>${t.name}</p></div>`;
+                
+                DesignState.elements = [];
+                document.getElementById('design-layers-list').innerHTML = '';
+                saveDesignHistory();
+                
+                showNotification(`Loaded template: ${t.name}`, 'success');
+            }
+        }
+
+        function addDesignShape(shape) {
+            const canvas = document.getElementById('design-canvas');
+            const id = 'element-' + Date.now();
+            
+            const el = document.createElement('div');
+            el.className = 'design-element';
+            el.id = id;
+            
+            let styles = '';
+            switch(shape) {
+                case 'square':
+                    styles = 'width: 150px; height: 150px; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));';
+                    break;
+                case 'circle':
+                    styles = 'width: 150px; height: 150px; background: var(--neon-cyan); border-radius: 50%;';
+                    break;
+                case 'triangle':
+                    styles = 'width: 0; height: 0; border-left: 75px solid transparent; border-right: 75px solid transparent; border-bottom: 130px solid var(--neon-purple); background: transparent;';
+                    break;
+                case 'star':
+                    el.innerHTML = '⭐';
+                    el.style.fontSize = '80px';
+                    break;
+                case 'heart':
+                    el.innerHTML = '❤️';
+                    el.style.fontSize = '80px';
+                    break;
+                case 'arrow':
+                    el.innerHTML = '➡️';
+                    el.style.fontSize = '60px';
+                    break;
+                case 'line':
+                    styles = 'width: 200px; height: 4px; background: var(--neon-cyan);';
+                    break;
+                case 'frame':
+                    styles = 'width: 200px; height: 280px; border: 6px solid var(--neon-cyan); background: transparent;';
+                    break;
+            }
+            
+            el.style.cssText += styles + ' position: absolute; left: 50px; top: 50px;';
+            
+            el.innerHTML += `
+                <div class="resize-handle nw"></div>
+                <div class="resize-handle ne"></div>
+                <div class="resize-handle sw"></div>
+                <div class="resize-handle se"></div>
+            `;
+            
+            makeElementDraggable(el);
+            canvas.appendChild(el);
+            DesignState.elements.push({ id, type: 'shape', shape });
+            addLayerItem(id, shape.charAt(0).toUpperCase() + shape.slice(1));
+            
+            selectElement(el);
+            saveDesignHistory();
+        }
+
+        function addDesignText(type) {
+            const canvas = document.getElementById('design-canvas');
+            const id = 'element-' + Date.now();
+            
+            const texts = {
+                'heading': { text: 'Your Heading', size: '28px', weight: 'bold' },
+                'subheading': { text: 'Subheading here', size: '20px', weight: '500' },
+                'body': { text: 'Your text here', size: '14px', weight: 'normal' }
+            };
+            
+            const t = texts[type];
+            
+            const el = document.createElement('div');
+            el.className = 'design-element';
+            el.id = id;
+            el.contentEditable = true;
+            el.innerHTML = `
+                ${t.text}
+                <div class="resize-handle nw"></div>
+                <div class="resize-handle ne"></div>
+                <div class="resize-handle sw"></div>
+                <div class="resize-handle se"></div>
+            `;
+            el.style.cssText = `position: absolute; left: 50px; top: 50px; font-size: ${t.size}; font-weight: ${t.weight}; color: #000; min-width: 150px; padding: 8px; cursor: move;`;
+            
+            makeElementDraggable(el);
+            canvas.appendChild(el);
+            
+            DesignState.elements.push({ id, type: 'text', textType: type });
+            addLayerItem(id, type.charAt(0).toUpperCase() + type.slice(1) + ' Text');
+            
+            selectElement(el);
+            saveDesignHistory();
+            el.focus();
+        }
+
+        function makeElementDraggable(el) {
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+            
+            el.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('resize-handle')) return;
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = el.offsetLeft;
+                startTop = el.offsetTop;
+                selectElement(el);
+                e.stopPropagation();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                el.style.left = (startLeft + dx) + 'px';
+                el.style.top = (startTop + dy) + 'px';
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    saveDesignHistory();
+                }
+            });
+        }
+
+        function selectElement(el) {
+            deselectAllElements();
+            el.classList.add('selected');
+            DesignState.selectedElement = el;
+        }
+
+        function deselectAllElements() {
+            document.querySelectorAll('.design-element').forEach(el => {
+                el.classList.remove('selected');
+            });
+            DesignState.selectedElement = null;
+        }
+
+        function addLayerItem(id, name) {
+            const list = document.getElementById('design-layers-list');
+            const item = document.createElement('div');
+            item.className = 'layer-panel-item';
+            item.onclick = () => {
+                const el = document.getElementById(id);
+                if (el) selectElement(el);
+            };
+            item.innerHTML = `
+                <i data-lucide="square" style="width: 16px; height: 16px;"></i>
+                <span style="flex: 1; font-size: 12px;">${name}</span>
+                <i data-lucide="eye" style="width: 14px; height: 14px; cursor: pointer;" onclick="toggleLayerVisibility('${id}', event)"></i>
+            `;
+            list.insertBefore(item, list.firstChild);
+            lucide.createIcons();
+        }
+
+        function toggleLayerVisibility(id, event) {
+            event.stopPropagation();
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function designNewProject() {
+            const canvas = document.getElementById('design-canvas');
+            canvas.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ccc;"><p>Your design canvas</p></div>';
+            canvas.style.width = '800px';
+            canvas.style.height = '600px';
+            DesignState.elements = [];
+            document.getElementById('design-layers-list').innerHTML = '';
+            saveDesignHistory();
+            showNotification('New project created', 'success');
+        }
+
+        function designUndo() {
+            showNotification('Undo', 'info', 1000);
+        }
+
+        function designRedo() {
+            showNotification('Redo', 'info', 1000);
+        }
+
+        function saveDesignHistory() {
+            DesignState.history.push(Date.now());
+        }
+
+        function designZoom(delta) {
+            DesignState.zoom = Math.max(0.5, Math.min(2, DesignState.zoom + delta));
+            const canvas = document.getElementById('design-canvas');
+            canvas.style.transform = `scale(${DesignState.zoom})`;
+            document.getElementById('design-zoom-display').textContent = Math.round(DesignState.zoom * 100) + '%';
+        }
+
+        function designShare() {
+            showNotification('Share link copied!', 'success');
+        }
+
+        function designDownload() {
+            showNotification('Preparing download...', 'info');
+            setTimeout(() => showNotification('Design downloaded!', 'success'), 1500);
+        }
+
+        function applyBrandColor(color) {
+            if (DesignState.selectedElement) {
+                DesignState.selectedElement.style.color = color;
+                DesignState.selectedElement.style.borderColor = color;
+                DesignState.selectedElement.style.background = color;
+            }
+            showNotification(`Color applied: ${color}`, 'success');
+        }
+
+        function handleDesignUpload(event) {
+            const files = event.target.files;
+            showNotification(`${files.length} image(s) uploaded`, 'success');
+        }
+
+        function exportDesign(format) {
+            showNotification(`Exporting as ${format.toUpperCase()}...`, 'info');
+            setTimeout(() => showNotification(`Exported as ${format.toUpperCase()}!`, 'success'), 1500);
+        }
+
+        function saveSystemSettings() {
+            showNotification('Settings saved!', 'success');
+        }
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '9') {
+                const apps = ['terminal', 'vibe-coder', 'wan-video', 'foss-image', 'visual-lab', 'design-studio', 'funnel-builder', 'neural-net', 'system'];
+                const index = parseInt(e.key) - 1;
+                if (apps[index]) toggleApp(apps[index]);
+            }
+            if (e.key === 'Escape') closeModal();
+        });
+
+    </script>
+</body>
+</html>
